@@ -163,11 +163,7 @@ end
         return(gof_sum)
     end
 
-    if archetype == 1
-        T_max=100*12 
-    else
-        T_max=100*12
-    end
+    T_max=100*12 
     
     ts = range(0, stop=T_max, step=1)
     initial = gen_initial_burn_in!(params_archetype, ages)
