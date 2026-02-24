@@ -103,8 +103,8 @@ function check_demographic_equilibrium(sol, threshold=0.01) #0.001
     
     total_pops = [sum(u) for u in last_two_years]
     
-    # annual growth rate (as percentage)
-    annual_growth_rate = 100 * (total_pops[end] - total_pops[1]) / total_pops[1] / 2  # Divide by 2 years
+    # annual growth rate (%)
+    annual_growth_rate = 100 * (total_pops[end] - total_pops[1]) / total_pops[1] / 2  
     
     
     
