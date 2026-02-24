@@ -1,4 +1,3 @@
-using Distributed, CSV, DifferentialEquations, DataFrames, StructArrays, Tables, Optim, StatsBase, Distributions, LinearAlgebra,LsqFit
 addprocs(10)
 
 @everywhere using CSV, DifferentialEquations, DataFrames, StructArrays, Tables, Optim, StatsBase, Distributions, LinearAlgebra,LsqFit
@@ -164,22 +163,15 @@ end
         return(gof_sum)
     end
 
-    # Run initial calibration for 100 years as usual
-    if archetype == 1
-        T_max=100*12 
-    else
-        T_max=100*12
-    end
+    T_max=100*12 
     
     ts = range(0, stop=T_max, step=1)
     initial = gen_initial_burn_in!(params_archetype, ages)
     cal_prob = ODEProblem(typhoid_model!, initial, (0.0, T_max), params_archetype)
     cal_sol = solve(cal_prob, save_everystep=false, tstops=ts, saveat=ts) 
     cleaned_cal = clean_output_full_transmission_calib!(cal_sol)
-    ## Extract incidence values
     cal_inc = calc_inc_burn(cleaned_cal)
 
-    # Calculate fit to targets using end of calibration
     cal_inc[cal_inc .<= 0].=0.0000001 #to prevent NA errors in Poisson
     gof_poisson = [log(pdf(Poisson(cal_inc[i]), Int(round(target_inc[i])))) for i in 1:5]
 
@@ -259,7 +251,6 @@ end
 
 # calculate burn-in incidence 
 @everywhere function calc_inc_burn(sol_archetype)
-    # Pre-compute age categories once
     agecat1 = 1:3
     agecat2 = [4]
     agecat3 = [5]
