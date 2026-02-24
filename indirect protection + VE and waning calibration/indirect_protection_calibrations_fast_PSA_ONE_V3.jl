@@ -64,6 +64,7 @@ end
 end
 
 # full typhoid model with all vaccine-relevant compartments
+# post-infection pathways vary depending on V, V2, Vw, or never vaccinated origin
 @everywhere function typhoid_model_integrated!(du, u, p, t) 
     ages = 17
     m = 17
