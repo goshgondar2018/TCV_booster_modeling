@@ -1,4 +1,3 @@
-using Distributed, CSV, DifferentialEquations, DataFrames, StructArrays, Tables, Optim, StatsBase, Distributions, LinearAlgebra, LsqFit, BlackBoxOptim, StatsFuns
 addprocs(20) #addprocs(25) 
 
 @everywhere using CSV, DifferentialEquations, DataFrames, StructArrays, Tables, Optim, StatsBase, Distributions, LinearAlgebra, LsqFit, BlackBoxOptim, StatsFuns
@@ -66,7 +65,6 @@ end
     ages = 17
     m = 17
     
-    # Main compartments (unchanged)
     S = @view u[1:m]                     # Susceptible (unvaccinated)
     V = @view u[m+1:2*m]                 # Vaccinated (partial protection)
     V2 = @view u[2*m+1:3*m]              # Vaccinated (partial protection 2)
@@ -348,19 +346,17 @@ end
 @everywhere function gen_initial_integrated!(params, current_S, current_Is, current_Ia, current_C, current_R)
     vaxx_covg_trial = 155841/(155841+155448)
     ages = 17
-    # Initialize susceptible compartments with proper VE distribution
+
     V_0 = current_S .* vaxx_covg_trial .* params.VE            # Actively protected vaccinated
     Vw_0 = current_S .* vaxx_covg_trial .* (1 .- params.VE)    # Partially protected vaccinated
     S_0 = current_S .- V_0 .- Vw_0                             # Truly unvaccinated
     
-    # Initial disease compartments (same as before)
     V2_0 = zeros(ages)
     Is_0 = current_Is
     Ia_0 = current_Ia
     C_0 = current_C
     R_0 = current_R
     
-    # Initial proportion variables - all start at 0 since we're initializing from pre-vaccine state
     Is_never = current_Is
     Is_V = zeros(ages)
     Is_V2 = zeros(ages)
@@ -401,7 +397,7 @@ end
 
 # process compartmental pop size output following transmission
 @everywhere function clean_output_integrated!(sol)
-      ages = 17
+    ages = 17
     m = 17
     
     time_points = sol.t
@@ -848,13 +844,11 @@ end
         return(gof_sum)
     end
     
-    # Initialize model
     initial = gen_initial_integrated!(params, current_S, current_Is, current_Ia, current_C, current_R)
     
-    # Define time points for VE evaluation
+    # define time points for VE evaluation
     T_18month = 18  # For final VE and incidence
     ts_18month = range(0, stop=T_18month, step=1)
-
 
     T_3yr = 12*3
     ts_3yr = range(0, stop=T_3yr, step=1)
@@ -865,7 +859,7 @@ end
     #T_2yr = round(12*2.305)  # For final VE and incidence
     #ts_2yr = range(0, stop=T_2yr, step=1)
 
-    # Solve for 18-month period (final VE and incidence)
+    # solve for 18-month period (final VE and incidence)
     cal_prob_18m = ODEProblem(typhoid_model_integrated!, initial, (0.0, T_18month), params)
     cal_sol_18m = solve(cal_prob_18m, Tsit5(), save_everystep=false, tstops=ts_18month, saveat=ts_18month)
     cleaned_cal_18m = clean_output_integrated!(cal_sol_18m)
@@ -889,7 +883,6 @@ end
     cal_VE_final = (cal_inc_control_1y .- cal_inc_vaxx_1y) ./ cal_inc_control_1y
     cal_VE_post = (cal_inc_control_2y .- cal_inc_vaxx_2y) ./ cal_inc_control_2y
     
-    # Prevent numerical issues
     cal_inc_control=cal_inc_control_18m_aggregated
     
     # Calculate goodness of fit components
@@ -1032,7 +1025,6 @@ end
     Sv_values = [u[8*m+1:9*m] for u in sol.u]
     cases_values = [u[9*m+1:10*m] for u in sol.u]
 
-    # Create DataFrame with time
     model_df = DataFrame(time = time_points)
     
     for age in 1:ages
