@@ -163,7 +163,6 @@ end
         return(gof_sum)
     end
 
-    # Run initial calibration for 100 years as usual
     if archetype == 1
         T_max=100*12 
     else
@@ -258,7 +257,6 @@ end
 
 # calculate burn-in incidence 
 @everywhere function calc_inc_burn(sol_archetype)
-    # Pre-compute age categories once
     agecat1 = 1:3
     agecat2 = [4]
     agecat3 = [5]
@@ -337,13 +335,13 @@ end
 results = pmap(1:250) do i # change to 251:500, 501:750, and 751:1000 to obtain all samples output
     println(string("starting ", i))
     
-    # Initialize parameters for this run
+    # initialize parameters for this run
     local_params_archetype1 = update_params_psa(params_archetype1, samples_archetype1, i)
 
     T = 1200 # run calibration/burn-in for 100 years
     ts = range(0, stop=T, step=1)
     
-    # Incidence targets and initial parameter guesses
+    # incidence targets and initial parameter guesses
     target_inc_archetype1 = [samples_archetype1.inc_age_cat1[i], samples_archetype1.inc_age_cat2[i], 
     samples_archetype1.inc_age_cat3[i], samples_archetype1.inc_age_cat4[i], samples_archetype1.inc_age_cat5[i]]
 
@@ -352,7 +350,7 @@ results = pmap(1:250) do i # change to 251:500, 501:750, and 751:1000 to obtain 
     initial_alpha = [1/(19.8*12)] 
     initial_params_archetype1 = [initial_betas_1; initial_f_archetype1; initial_alpha]
         
-    # Calibrate
+    # calibrate
     opt_archetype1 = optimize(
         x -> incidence_gof_calibration!(x, local_params_archetype1, 1, target_inc_archetype1, "poisson", 1), 
         initial_params_archetype1, NelderMead(),
@@ -360,12 +358,10 @@ results = pmap(1:250) do i # change to 251:500, 501:750, and 751:1000 to obtain 
     )
     opt_burn_archetype1 = Optim.minimizer(opt_archetype1)
 
-    
-    # Compute likelihood and incidence
+    # compute likelihood and incidence
     opt_like_archetype1 = incidence_gof_calibration!(opt_burn_archetype1, local_params_archetype1, 1, target_inc_archetype1, "poisson", 0) 
     opt_inc_archetype1 = get_calibrated_incidence!(local_params_archetype1, opt_burn_archetype1)
  
-    # Return results from this run
     return (
         i = i,
         archetype1 = [opt_burn_archetype1; opt_inc_archetype1; opt_like_archetype1]
