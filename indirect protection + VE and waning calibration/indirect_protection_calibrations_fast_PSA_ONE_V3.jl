@@ -403,13 +403,11 @@ end
 
 # process compartmental pop size output following transmission
 @everywhere function clean_output_integrated!(sol)
-      ages = 17
+    ages = 17
     m = 17
     
     time_points = sol.t
 
-    # Extract all compartment values for each time point
-     # Main compartments (unchanged)
     S_values = [u[1:m] for u in sol.u]                   
     V_values = [u[m+1:2*m] for u in sol.u]             
     V2_values = [u[2*m+1:3*m] for u in sol.u]             
@@ -442,11 +440,10 @@ end
     R_V2_values = [u[22*m+1:23*m] for u in sol.u]
     R_Vw_values = [u[23*m+1:24*m] for u in sol.u]
     
-    # Cumulative cases
+    # cases
     cases_vaxx_values = [u[24*m+1:25*m] for u in sol.u]
     cases_control_values = [u[25*m+1:26*m] for u in sol.u]
 
-    # Create DataFrame with time
     model_df = DataFrame(time = time_points)
     
     for age in 1:ages
@@ -526,7 +523,7 @@ end
             total_pop_archetype_agecat1 += sol_archetype[end, Symbol("S_$i")]
         end
         
-        # Disease compartments (only unvaccinated portion)
+        # disease compartments (only unvaccinated portion)
         if Symbol("Is_never_$i") in propertynames(sol_archetype) 
             total_pop_archetype_agecat1 += sol_archetype[end, Symbol("Is_never_$i")] 
         end
@@ -685,7 +682,7 @@ end
             total_person_time_archetype_agecat1 += sum(sol_archetype[:, Symbol("S_$i")][t] for t in t_start:t_end)
         end
         
-        # Disease compartments (only unvaccinated portion)
+        # disease compartments (only unvaccinated portion)
         if Symbol("Is_never_$i") in propertynames(sol_archetype) 
             total_person_time_archetype_agecat1 += sum(sol_archetype[:, Symbol("Is_never_$i")][t] for t in t_start:t_end)  #sol_archetype[end, Symbol("Is_never_$i")] 
         end
@@ -759,7 +756,7 @@ end
     total_person_time_archetype_agecat2 = 0
     total_person_time_archetype_agecat3 = 0
 
-# age category 1 (1-3)
+    # age category 1 (1-3)
     for i in 1:3
         if Symbol("V_$i") in propertynames(sol_archetype) 
             total_person_time_archetype_agecat1 += sum(sol_archetype[:, Symbol("V_$i")][t] for t in t_start:t_end) 
@@ -903,7 +900,7 @@ end
         gof_incidence = 1e3  # Large penalty for invalid incidence
     end
     
-    # final VE fit (weighted squared errors for each VE component)
+    # final VE fit (weighted squared errors for each VE component, with weights determined by number of ages captured in each age category)
     weights = [1/3, 1/13]
     
     if all(cal_VE_final.>0) && all(cal_VE_final.<1)
@@ -1058,7 +1055,6 @@ end
     for age in 1:ages
         age_label = string(age)
         
-        # Add columns for each compartment and age
         model_df[!, "S_$age_label"] = [S[age] for S in S_values]
         model_df[!, "Is_$age_label"] = [Is[age] for Is in Is_values]
         model_df[!, "Ia_$age_label"] = [Ia[age] for Ia in Ia_values]
