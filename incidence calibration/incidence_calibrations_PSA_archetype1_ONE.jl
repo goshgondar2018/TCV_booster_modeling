@@ -177,7 +177,6 @@ end
     ## Extract incidence values
     cal_inc = calc_inc_burn(cleaned_cal)
 
-    # Calculate fit to targets using end of calibration
     cal_inc[cal_inc .<= 0].=0.0000001 #to prevent NA errors in Poisson
     gof_poisson = [log(pdf(Poisson(cal_inc[i]), Int(round(target_inc[i])))) for i in 1:5]
 
