@@ -1,3 +1,5 @@
+#
+extended on code initially produced by Tess Ryckman and Chris Weyant
 addprocs(15)
 
 @everywhere using CSV, DifferentialEquations, DataFrames, StructArrays, Tables, Optim, StatsBase, Distributions, LinearAlgebra,LsqFit
