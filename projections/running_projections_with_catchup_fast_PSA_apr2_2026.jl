@@ -331,7 +331,7 @@ end
     ddoses .= actual_total_r_vaxx_ALL .+ actual_total_b_vaxx_ALL .+ p.vx_c .* p.pvx_c .* (S  .+ Ia_never .+ C_never .+ R_never)
     ddoses_routine .= actual_total_r_vaxx_ALL
     ddoses_booster .= actual_total_b_vaxx_ALL
-    ddoses_campaign .= p.vx_c .* p.pvx_c .* (S .+ Ia_never .+ C_never .+ R_never)
+    ddoses_campaign .= p.vx_c .* p.pvx_c .* (S .+ Ia_never .+ C_never .+ R_never) #p.vx_c .* p.pvx_c .* (S)
         
    # 3. DISEASE TRANSMISSION
     Is_vec = fill(total_Is, ages) / N
