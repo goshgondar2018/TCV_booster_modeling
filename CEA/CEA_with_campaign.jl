@@ -10,7 +10,6 @@ costs_psa_asia.vaccine_procurement_costs.=1.5;
 age_weights=Vector(CSV.read("age_weights.csv", DataFrame,header=false)[1:17, 1]);
 
 
-# Helper function to convert 3D array to DataFrame
 function convert_to_dataframe(values, n_rows, n_years, n_strategies, strategy_names, metric_name)
     # Initialize empty data frame
     df = DataFrame()
@@ -27,12 +26,10 @@ function convert_to_dataframe(values, n_rows, n_years, n_strategies, strategy_na
 end
 
 function convert_wide_to_long(df, metric_name)
-    # Strategy names
     strategy_names = ["no_vaxx", "routine_9mos", "routine_15mos", "routine_2yrs", "routine_5yrs", 
                      "routine_9mos_booster_5yrs", "routine_15mos_booster_5yrs", 
                      "routine_9mos_booster_5yrs_10yrs", "routine_15mos_booster_5yrs_10yrs"]
     
-    # Find strategy columns in the original data frame
     strategy_cols = Vector{Symbol}()
     strategy_idx = Dict{Symbol, Int}()
     
@@ -44,67 +41,51 @@ function convert_wide_to_long(df, metric_name)
         end
     end
     
-    # Initialize the result data frame
     result_df = DataFrame()
     result_rows = []
     
-    # Process each row in the original data frame
     for row in eachrow(df)
         year = row.year
         iter = row.iteration
         
-        # Process each strategy column
         for strat_col in strategy_cols
-            # Get the strategy name and value
             strat_name = String(strat_col)
             strat_value = row[strat_col]
             
-            # Create a new row for the result data frame
             push!(result_rows, (iteration=iter, year=year, strategy=strat_name, value=strat_value))
         end
     end
     
-    # Convert to DataFrame
     result_df = DataFrame(result_rows)
     
-    # Rename the value column to the specified metric name
     rename!(result_df, :value => metric_name)
     
     return result_df
 end
 
 function reorganize_combined_dataframe(dfs, metric_names)
-    # First, combine all the data as before
     combined_df = DataFrame()
     
-    # Hard-code the strategy list to ensure all 9 strategies are included
     strategies = ["no_vaxx", "routine_9mos", "routine_15mos", "routine_2yrs", "routine_5yrs", 
                  "routine_9mos_booster_5yrs", "routine_15mos_booster_5yrs", 
                  "routine_9mos_booster_5yrs_10yrs", "routine_15mos_booster_5yrs_10yrs"]
     
-    # Extract unique iterations and years from first dataframe
     first_df = dfs[1]
     iterations = unique(first_df.iteration)
     years = unique(first_df.year)
     
-    # Rest of function remains the same...
-    # Initialize lists to build our new data frame
     all_strategies = String[]
     all_iterations = Int[]
     all_years = Int[]
     
-    # Create columns for each metric
     metric_values = Dict(metric => Any[] for metric in metric_names)
     
-    # Create a lookup dictionary for each data frame
     data_lookup = Dict{Int, Dict{Int, Dict{String, Dict{Int, Any}}}}()
     
-    # Build lookup dictionaries for each data frame
     for i in 1:length(dfs)
         df = dfs[i]
         metric = metric_names[i]
         
-        # Create a nested dictionary: iteration -> strategy -> year -> value
         lookup = Dict{Int, Dict{String, Dict{Int, Any}}}()
         
         for row in eachrow(df)
@@ -128,7 +109,6 @@ function reorganize_combined_dataframe(dfs, metric_names)
         data_lookup[i] = lookup
     end
     
-    # Build the reorganized data frame
     for iter in iterations
         for strat in strategies
             for yr in years
@@ -136,9 +116,7 @@ function reorganize_combined_dataframe(dfs, metric_names)
                 push!(all_strategies, strat)
                 push!(all_years, yr)
                 
-                # Add values for each metric
                 for (i, metric) in enumerate(metric_names)
-                    # Get the value if it exists, otherwise use missing
                     value = missing
                     if haskey(data_lookup, i) && 
                        haskey(data_lookup[i], iter) && 
@@ -153,7 +131,6 @@ function reorganize_combined_dataframe(dfs, metric_names)
         end
     end
     
-    # Build the final data frame
     combined_df.iteration = all_iterations
     combined_df.strategy = all_strategies
     combined_df.year = all_years
@@ -162,7 +139,6 @@ function reorganize_combined_dataframe(dfs, metric_names)
         combined_df[!, metric] = metric_values[metric]
     end
     
-    # Sort the data frame in the desired order: iteration, strategy, year
     sort!(combined_df, [:iteration, :strategy, :year])
     
     return combined_df
@@ -257,11 +233,7 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
         (50+55)/2, (55+60)/2, (60+65)/2, (65+100)/2
       ]
 
-    #age_midpoints = [ #0.375, 1.03
-        #0.375, 0.9583, 1.5833, 3.5, 7.5, 12.5,
-        #17.5, 22.5, 27.5, 32.5, 37.5, 42.5,
-        #47.5, 52.5, 57.5, 62.5, 82.5
-    #]
+    
     base_LE = LE
     life_exp_bands = [max(0, base_LE - m) for m in age_midpoints]  # 17-element vector
 
@@ -344,7 +316,7 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
                 hospitalizations[iter, year, strat] = seek_care * inpatient * total_cases
                 deaths[iter, year, strat] = cfr * total_cases
                 
-                # YLD components - use total peds/adult cases
+                # YLD 
                 untreated_dalys = (1 - seek_care) * duration_untreated/365 * 
                                   DW_untreated * total_cases
                 severe_with_compl = seek_care * complications * inpatient * 
@@ -356,7 +328,7 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
                 moderate = seek_care * (1 - inpatient) * duration_moderate/365 * 
                           DW_moderate * total_cases
 
-                # YLL - fully age-stratified using 17 bands
+                # YLL
                 death_dalys = 0.0
                 if sum(year_age_idx) > 0
                     for age in 1:17
@@ -370,7 +342,6 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
                 DALYs[iter, year, strat] = untreated_dalys + severe_with_compl + 
                                            severe_no_compl + moderate + death_dalys
                 
-                # Vaccine costs - unchanged
                 if strat > 1
                     routine_strat_idx = strat - 1
                     vaccine_costs_routine[iter, year, strat] = year_routine_doses[routine_strat_idx] * 
@@ -394,7 +365,6 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
                                                      vaccine_costs_booster[iter, year, strat] + 
                                                      vaccine_costs_campaign[iter, year, strat]
                 
-                # Treatment costs - peds/adult stratification unchanged
                 inpatient_peds = seek_care * inpatient * inpatient_cost_peds * year_peds_cases[strat]
                 outpatient_peds = seek_care * (1 - inpatient) * outpatient_cost_peds * year_peds_cases[strat]
                 inpatient_adult = seek_care * inpatient * inpatient_cost_adult * year_adult_cases[strat]
@@ -413,29 +383,24 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
 
     discounted_hospitalizations = apply_discounting(hospitalizations, outcome_discount_factors)
     
-    # 17-band life_exp passed directly
     discounted_DALYs = apply_discounting_DALYs(DALYs, deaths_by_age, outcome_discount_rate, life_exp_bands, 17)
     
     discounted_vaccine_costs = apply_discounting(vaccine_costs_all, cost_discount_factors)
     discounted_treatment_costs = apply_discounting(treatment_costs, cost_discount_factors)
     discounted_total_costs = discounted_vaccine_costs + discounted_treatment_costs
 
-     # Strategy names for the data frames
     strategy_names = ["no_vaxx", "routine_9mos", "routine_15mos", "routine_2yrs", "routine_5yrs", 
                      "routine_9mos_booster_5yrs", "routine_15mos_booster_5yrs", 
                      "routine_9mos_booster_5yrs_10yrs", "routine_15mos_booster_5yrs_10yrs"]
     
-    # Convert 3D arrays to data frames
     hospitalizations_df = convert_to_dataframe(hospitalizations, n_rows, n_years, n_strategies, strategy_names, "hospitalizations")
     deaths_df = convert_to_dataframe(deaths, n_rows, n_years, n_strategies, strategy_names, "deaths")
     DALYs_df = convert_to_dataframe(DALYs, n_rows, n_years, n_strategies, strategy_names, "DALYs")
     discounted_DALYs_df = convert_to_dataframe(discounted_DALYs, n_rows, n_years, n_strategies, strategy_names, "discounted_DALYs")
     
-    # Cost data frames
     treatment_costs_df = convert_to_dataframe(treatment_costs, n_rows, n_years, n_strategies, strategy_names, "treatment_costs")
     vaccine_costs_df = convert_to_dataframe(vaccine_costs_all, n_rows, n_years, n_strategies, strategy_names, "vaccine_costs_all")
       
-    # Discounted cost data frames
     discounted_treatment_costs_df = convert_to_dataframe(discounted_treatment_costs, n_rows, n_years, n_strategies, strategy_names, "discounted_treatment_costs")
     discounted_vaccine_costs_df = convert_to_dataframe(discounted_vaccine_costs, n_rows, n_years, n_strategies, strategy_names, "discounted_vaccine_costs_all")
     discounted_total_costs_df = convert_to_dataframe(discounted_total_costs, n_rows, n_years, n_strategies, strategy_names, "discounted_total_costs")
@@ -1241,7 +1206,6 @@ rename!(archetype3_slow_africa_df_with_campaign,vcat("run_id",names(archetype3_s
 
 
 
-# Helper function to fix strategy names (remove "_with_campaign" suffix)
 function fix_strategy_names(df)
     if "strategy" in names(df)
         df.strategy = replace.(df.strategy, "_with_campaign" => "")
@@ -1353,8 +1317,6 @@ archetype3_fast_asia_df_with_campaign = fix_strategy_names(archetype3_fast_asia_
 archetype3_fast_africa_df_with_campaign = fix_strategy_names(archetype3_fast_africa_df_with_campaign)
 archetype3_slow_asia_df_with_campaign = fix_strategy_names(archetype3_slow_asia_df_with_campaign)
 archetype3_slow_africa_df_with_campaign = fix_strategy_names(archetype3_slow_africa_df_with_campaign);
-
-
 
 
 
