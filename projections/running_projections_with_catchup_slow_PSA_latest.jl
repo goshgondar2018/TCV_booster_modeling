@@ -1115,7 +1115,7 @@ end
         routine_doses_df,
         booster_doses_df,
         campaign_doses_df,
-        age_stratified_cases_df  # NEW
+        age_stratified_cases_df  
     )
 end
 
@@ -1135,52 +1135,40 @@ end
            id_sequence = id_seq_archetype3
         end
 
-        for i in id_sequence
-            println("Starting archetype $archetype, iteration $i")
-                
-            sample_use = get_psa_samples(archetype, i)
-                
-            local_params_slow_waning = update_params_psa_burn_all(get_base_params(archetype), sample_use, archetype, "slow")
-            local_params = update_params_psa_burn(get_base_params(archetype), sample_use)
-                                
-            T = 1200
-            ts = range(0, stop=T, step=1)
-                
-            initial = gen_initial_burn_in!(local_params, 17)
-            prob = ODEProblem(typhoid_model!, initial, (0.0, T), local_params)
-                
-            sol = solve(prob, 
-                           dense=false, save_everystep=false, tstops=ts, saveat=ts)
-                
-            cleaned_sol = clean_output_full_transmission_calib!(sol)
-                
-            current_S = extract_compartment_values(cleaned_sol, "S", T)
-            current_Is = extract_compartment_values(cleaned_sol, "Is", T)
-            current_Ia = extract_compartment_values(cleaned_sol, "Ia", T)
-            current_C = extract_compartment_values(cleaned_sol, "C", T)
-            current_R = extract_compartment_values(cleaned_sol, "R", T)
-                
-            # create strategy parameters
-            strategy_params_slow_waning = create_strategy_params(local_params_slow_waning)
-                
-            # initialize for no-vaxx scenario
-            local_params_slow_waning.pvx_b .= repeat([0], 17)
-            local_params_slow_waning.pvx_c .= repeat([0], 17)
-                
-             # run projections
-                slow_waning_results = run_projections_for_all_strategies(
-                    local_params_slow_waning, 
-                    strategy_params_slow_waning, 
-                    current_S, current_Is, current_Ia, current_C, current_R, 
-                    i
-                )
-                
-             push!(results, slow_waning_results)
-                 
-        end
+        results = pmap(id_sequence) do i
+          sample_use = get_psa_samples(archetype, i)
+          local_params_slow_waning = update_params_psa_burn_all(deepcopy(get_base_params(archetype)), sample_use, archetype, "slow")
+          local_params = update_params_psa_burn(deepcopy(get_base_params(archetype)), sample_use)
+    
+          T = 1200
+          ts = range(0, stop=T, step=1)
+          initial = gen_initial_burn_in!(local_params, 17)
+          prob = ODEProblem(typhoid_model!, initial, (0.0, T), local_params)
+          sol = solve(prob, dense=false, save_everystep=false, tstops=ts, saveat=ts)
+          cleaned_sol = clean_output_full_transmission_calib!(sol)
+
+          current_S = extract_compartment_values(cleaned_sol, "S", T)
+          current_Is = extract_compartment_values(cleaned_sol, "Is", T)
+          current_Ia = extract_compartment_values(cleaned_sol, "Ia", T)
+          current_C = extract_compartment_values(cleaned_sol, "C", T)
+          current_R = extract_compartment_values(cleaned_sol, "R", T)
+
+          strategy_params_slow_waning = create_strategy_params(local_params_slow_waning)
+
+          local_params_slow_waning_base = deepcopy(local_params_slow_waning)
+          local_params_slow_waning_base.pvx_r .= repeat([0], 17)
+          local_params_slow_waning_base.pvx_b .= repeat([0], 17)
+          local_params_slow_waning_base.pvx_c .= repeat([0], 17)
+
+          run_projections_for_all_strategies(
+           local_params_slow_waning_base,  # ← zeroed out base
+           strategy_params_slow_waning,    # ← strategies keep their coverage
+           current_S, current_Is, current_Ia, current_C, current_R, i
+         )
+    end
         
         all_results[archetype] = results
-    end
+ end
 
     return all_results
 end
