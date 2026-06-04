@@ -1161,8 +1161,8 @@ end
           local_params_slow_waning_base.pvx_c .= repeat([0], 17)
 
           run_projections_for_all_strategies(
-           local_params_slow_waning_base,  # ← zeroed out base
-           strategy_params_slow_waning,    # ← strategies keep their coverage
+           local_params_slow_waning_base,  
+           strategy_params_slow_waning,    
            current_S, current_Is, current_Ia, current_C, current_R, i
          )
     end
