@@ -259,7 +259,6 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
         DW_severe = params_psa_costs.DW_severe[iter]
         DW_severe_with_ip = params_psa_costs.DW_severe_with_ip[iter]
         DW_moderate = params_psa_costs.DW_moderate[iter]
-        # LE not extracted from PSA - using fixed base_LE for life_exp_bands
         inpatient_cost_peds = params_psa_costs.inpatient_cost_peds[iter]
         outpatient_cost_peds = params_psa_costs.outpatient_cost_peds[iter]
         inpatient_cost_adult = params_psa_costs.inpatient_cost_adult[iter]
