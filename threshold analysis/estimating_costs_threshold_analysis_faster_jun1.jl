@@ -544,12 +544,8 @@ function calculate_all_strategies_nmb(result_df, wtp_range)
     return all_results
 end
 
-# ============================================================================
-# PROCESS ONE SCENARIO AT A TIME
-# ============================================================================
-
+# process each scenario 
 function process_single_scenario(arch, waning, region, costs_psa, multipliers, output_file)
-    println("\nProcessing $(arch)_$(waning)_$(region)...")
     t_start = time()
     
     prefix = "./projections_output_may31/$(arch)_$(waning)_waning"
@@ -567,9 +563,7 @@ function process_single_scenario(arch, waning, region, costs_psa, multipliers, o
     campaign_doses = filter(row -> row.year <= 10,
         CSV.read("$(prefix)_campaign_doses_with_campaign_may31.csv", DataFrame)[:, vcat(1,3:11)])
     
-    
-    println("  Running $(length(multipliers)) multipliers with $(Threads.nthreads()) threads...")
-    
+      
     scenario_results = Vector{DataFrame}(undef, length(multipliers))
     
     Threads.@threads for i in 1:length(multipliers)
@@ -590,14 +584,10 @@ function process_single_scenario(arch, waning, region, costs_psa, multipliers, o
     
     wtp_range = range(0, step=50, stop=5000)
     
-    println("  Calculating optimal strategies by mean NMB across WTP range...")
-    println("    Computing for $(length(multipliers)) multipliers and $(length(wtp_range)) WTP thresholds...")
-    
+      
     optimal_strategies = calculate_optimal_strategies_by_wtp(result, wtp_range)
-    println("    ✓ Optimal strategies calculated")
     
     all_strategies_nmb = calculate_all_strategies_nmb(result, wtp_range)
-    println("    ✓ All strategies NMB calculated")
     
     mkpath("./threshold_analysis_output_jun1")
     cea_optimal_file = replace(output_file, ".csv" => "_CEA_optimal_by_mean_NMB_WIDE_strategy.csv")
@@ -605,14 +595,7 @@ function process_single_scenario(arch, waning, region, costs_psa, multipliers, o
     
     cea_all_file = replace(output_file, ".csv" => "_CEA_all_strategies_NMB.csv")
     CSV.write(cea_all_file, all_strategies_nmb)
-    
-    println("  ✓ CEA results saved")
-    
-    t_elapsed = time() - t_start
-    println("  ✓ Completed in $(round(t_elapsed/60, digits=1)) minutes")
-    println("    Optimal strategies: $cea_optimal_file")
-    println("    All strategies NMB: $cea_all_file")
-    
+     
     scenario_results    = nothing
     result              = nothing
     optimal_strategies  = nothing
@@ -635,10 +618,10 @@ end
 costs_lookup = Dict(:asia => costs_psa_asia, :africa => costs_psa_africa)
 
 using Random
-Random.seed!(12345)
+Random.seed!(12345) 
 
 multipliers_by_archetype = Dict(
-    :archetype1 => rand(Uniform(0.19, 9.6),  250),
+    :archetype1 => rand(Uniform(0.19, 9.6),  250), # run three additional scripts each also drawing 250 multipliers by archetype, but with a different random seed (just above); then, combine using combining_threshold_analysis.jl
     :archetype2 => rand(Uniform(0.09, 2.33), 250),
     :archetype3 => rand(Uniform(0.4,  1.20), 250)
 )
@@ -658,15 +641,11 @@ scenarios = [
     (:archetype3, :slow, :africa, "output_VERY_HIGH_SLOW_AFRICA_threshold_analysis.csv")
 ]
 
-println("Running analysis...")
-println("Processing 12 scenarios sequentially to minimize memory usage")
 
 @time for (idx, (arch, waning, region, output_file)) in enumerate(scenarios)
-    println("\n[$(idx)/12] ========================================")
     multipliers = multipliers_by_archetype[arch]
     costs_psa   = costs_lookup[region]
     output_path = "./threshold_analysis_output_jun1/$output_file"
     process_single_scenario(arch, waning, region, costs_psa, multipliers, output_path)
 end
 
-println("\n✓ All results saved!")
