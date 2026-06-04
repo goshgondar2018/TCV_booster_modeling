@@ -208,7 +208,7 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
         doses_routine_output, doses_booster_output, doses_campaign_output,
         params_psa_costs, LE)
     
-    n_rows = n_rows = 1000
+    n_rows = 1000
     n_years = 20
     n_strategies = 9
     n_booster_strategies = 4
@@ -240,11 +240,6 @@ function calculate_costs_with_catchup(cases_adult_output, cases_peds_output,
                      "routine_9mos_booster_5yrs", "routine_15mos_booster_5yrs", 
                      "routine_9mos_boosters_5yrs_10yrs",   
                      "routine_15mos_boosters_5yrs_10yrs"]
-    #else 
-        #strategy_names_col = ["no_vaxx", "routine_9mos", "routine_15mos", "routine_2yrs", "routine_5yrs", 
-                        # "routine_9mos_booster_5yrs", "routine_15mos_booster_5yrs", 
-                        # "routine_9mos_booster_5yrs_10yrs", "routine_15mos_booster_5yrs_10yrs"]
-    #end
     
     for iter in 1:n_rows
         seek_care = params_psa_costs.p_seek_care[iter]
