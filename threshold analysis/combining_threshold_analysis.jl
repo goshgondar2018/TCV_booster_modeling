@@ -106,7 +106,6 @@ for scenario in scenarios
     part4_file = "$(input_dir)/output_$(scenario)_threshold_analysis_part4_CEA_optimal_by_mean_NMB_WIDE_strategy.csv"
  
     if isfile(part1_file) && isfile(part2_file) && isfile(part3_file) && isfile(part4_file)
-        println("Combining: $(scenario) WIDE strategy file")
         
         df1 = CSV.read(part1_file, DataFrame)
         df2 = CSV.read(part2_file, DataFrame)
@@ -121,13 +120,11 @@ for scenario in scenarios
         output_file = "$(output_dir)/output_$(scenario)_threshold_analysis_combined_CEA_optimal_by_mean_NMB_WIDE_strategy.csv"
         CSV.write(output_file, combined)
         
-        println("  ✓ Saved: $(output_file)")
     else
         println("  ⚠ Missing files for: $(scenario)")
     end
 end
 
-println("\n✓ All WIDE files combined and sorted!")
 
 
 # Scenario definitions with metadata
@@ -156,7 +153,6 @@ for (scenario_name, incidence, waning, region) in scenario_info
     file_path = "$(input_dir)/output_$(scenario_name)_threshold_analysis_combined_CEA_optimal_by_mean_NMB_WIDE_strategy.csv"
     
     if isfile(file_path)
-        println("Reading: $(scenario_name)")
         df = CSV.read(file_path, DataFrame)
         sort!(df, [:multiplier, :WTP])
         df[!, :incidence]       .= incidence
@@ -189,9 +185,6 @@ select!(all_scenarios, Not([:incidence_sort, :region_sort, :waning_sort]))
 output_file = "$(output_dir)/ALL_SCENARIOS_CEA_optimal_WIDE_strategy.csv"
 CSV.write(output_file, all_scenarios)
 
-println("\n✓ Master file created: $(output_file)")
-println("  Total rows: $(nrow(all_scenarios))")
-println("  Columns: $(names(all_scenarios))")
 
 wide_df = reshape_optimal_to_wide_format(all_scenarios, scenario_info)
 CSV.write("$(output_dir)/ALL_SCENARIOS_CEA_optimal_WIDE_by_multiplier.csv", wide_df)
