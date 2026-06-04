@@ -11,7 +11,6 @@ age_weights=Vector(CSV.read("age_weights.csv", DataFrame,header=false)[1:17, 1])
 
 
 function convert_to_dataframe(values, n_rows, n_years, n_strategies, strategy_names, metric_name)
-    # Initialize empty data frame
     df = DataFrame()
     
     # Add run_id, year, and strategy columns
