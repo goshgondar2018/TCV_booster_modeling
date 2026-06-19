@@ -93,7 +93,6 @@ end
     params.f[7:17] .= fill(psa_sample.f5, 11)
     params.alpha .= fill(psa_sample.alpha, 17)
 
-    # For these parameters, check if they're scalars or arrays
     params.gamma .= fill(psa_sample.gamma, 17) 
     params.r_a .= fill(psa_sample.r_a, 17)     
     params.r_c .= fill(psa_sample.r_c, 17)      
@@ -460,7 +459,6 @@ end
     
     time_points = sol.t
 
-    # Extract all compartment values for each time point
     S_values = [u[1:m] for u in sol.u]                   
     V_values = [u[m+1:2*m] for u in sol.u]             
     V2_values = [u[2*m+1:3*m] for u in sol.u]             
@@ -552,7 +550,6 @@ end
 
     ages=17
     
-    # Initial disease compartments (same as before)
     S_0 = current_S
     Is_0 = current_Is
     Ia_0 = current_Ia
