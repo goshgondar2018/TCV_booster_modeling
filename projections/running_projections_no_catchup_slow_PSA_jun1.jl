@@ -80,7 +80,6 @@ end
 @everywhere function update_params_psa_burn(params_start, psa_sample)
     params=copy(params_start)
     
-    #calibrated parameters
     params.beta[1:3] .= fill(psa_sample.beta1, 3)
     params.beta[4] = psa_sample.beta2
     params.beta[5] = psa_sample.beta3
@@ -94,7 +93,6 @@ end
     params.f[7:17] .= fill(psa_sample.f5, 11)
     params.alpha .= fill(psa_sample.alpha, 17)
 
-    # For these parameters, check if they're scalars or arrays
     params.gamma .= fill(psa_sample.gamma, 17) 
     params.r_a .= fill(psa_sample.r_a, 17)     
     params.r_c .= fill(psa_sample.r_c, 17)      
@@ -126,7 +124,6 @@ end
     ages = 17
     m = 17
     
-    # Main compartments (unchanged)
     S = @view u[1:m]                     # Susceptible (unvaccinated)
     V = @view u[m+1:2*m]                 # Vaccinated (partial protection)
     V2 = @view u[2*m+1:3*m]              # Vaccinated (partial protection 2)
@@ -167,10 +164,8 @@ end
     doses_routine = @view u[26*m+1:27*m]
     doses_booster = @view u[27*m+1:28*m]
 
-    # Set up differential equations
     fill!(du, 0.0)
     
-    # Main compartment derivatives
     dS = @view du[1:m]                    
     dV = @view du[m+1:2*m]                
     dV2 = @view du[2*m+1:3*m]             
@@ -180,7 +175,6 @@ end
     dC = @view du[6*m+1:7*m]              
     dR = @view du[7*m+1:8*m]               
     
-    # Population count derivatives
     dIs_never = @view du[8*m+1:9*m]
     dIs_V = @view du[9*m+1:10*m]
     dIs_V2 = @view du[10*m+1:11*m]
@@ -248,14 +242,12 @@ end
                                 p.vx_b_on .* (p.pvx_b) .* (1 .- p.pu_in_burn) .* p.a_in .* [0;circshift(R_V2, 1)[2:ages]] .+
                                 p.vx_b_on .* (p.pvx_b) .* (1 .- p.pu_in_burn) .* p.a_in .* [0;circshift(R_Vw, 1)[2:ages]] 
     
-    # Limit it to what's available
     actual_total_r_vaxx = min.(intended_total_r_vaxx, S)
     actual_total_b_vaxx_Vw = min.(intended_total_b_vaxx_Vw, Vw)
 
     actual_total_r_vaxx_ALL = min.(intended_total_r_vaxx_ALL, sum(S+Ia_never+C_never+R_never))
     actual_total_b_vaxx_ALL = min.(intended_total_b_vaxx_ALL, sum(V+V2+Vw+Ia_V+Ia_V2+Ia_Vw+C_V+C_V2+C_Vw+R_V+R_V2+R_Vw))
 
-    # Distribute between successful and unsuccessful vaccination
     successful_r_vaxx = p.VE .* actual_total_r_vaxx 
     unsuccessful_r_vaxx = (1 .- p.VE) .* actual_total_r_vaxx 
     
@@ -573,7 +565,6 @@ end
 
     ages=17
     
-    # Initial disease compartments (same as before)
     S_0 = current_S
     Is_0 = current_Is
     Ia_0 = current_Ia
@@ -603,15 +594,12 @@ end
     R_V2 = zeros(ages)
     R_Vw = zeros(ages)
 
-    # Case tracking
     cases_0 = zeros(ages)
 
-    # Dose tracking
     doses_0 = zeros(ages)
     doses_routine_0 = zeros(ages)
     doses_booster_0 = zeros(ages)
 
-    # Combine all initial values
     initial = vcat(
         S_0, V_0, V2_0, Vw_0,                          # Susceptible compartments
         Is_0, Ia_0, C_0, R_0,                    # Disease compartments
@@ -703,32 +691,25 @@ end
         [("R_never_$i") for i in 1:17],[("R_V_$i") for i in 1:17],[("R_V2_$i") for i in 1:17],[("R_Vw_$i") for i in 1:17]) # Exclude case, dose, time, and tracker columns 
      compartment_cols = filter(col -> !(col in exclude_cols), all_cols)
 
-    # Calculate number of months and years
     n_months = size(sol_df, 1) - 1
     n_years = div(n_months, 12)
     
-    # Calculate annual incidence for each year
     annual_inc = zeros(n_years)
     
     for year in 1:n_years
-        # Calculate start and end indices for this year
         start_idx = (year-1)*12 + 1
         end_idx = year*12 + 1
         
-        # Calculate total new cases across all age categories for the entire year
         total_new_cases = sum(sol_df[end_idx, col] - sol_df[start_idx, col] for col in case_cols)
         
     
-        # Use average population over the year (average of start and end)
         start_population = sum(sol_df[start_idx, col] for col in compartment_cols)
         end_population = sum(sol_df[end_idx, col] for col in compartment_cols)
         avg_population = (start_population + end_population) / 2
         
-        # Calculate annual incidence (cases per 100,000 person-years)
         annual_inc[year] = avg_population > 0 ? (total_new_cases * 100000) / avg_population : 0
     end
 
-    # Create a DataFrame 
     result_df = DataFrame(
         year = 1:n_years,
         annual_incidence = annual_inc)
@@ -741,25 +722,19 @@ end
     T_max = 20*12
     ts = range(0, stop=T_max, step=1)
     
-    # Initialize with all proportion tracking variables
     initial_projections_doses = gen_initial_projections(current_S, current_Is, current_Ia, current_C, current_R)
     
-    # Solve the ODE system
     prob_projections_doses = ODEProblem(typhoid_model_projections!, initial_projections_doses, (0.0, T_max), params_archetype_vaxx_scenario)
     sol_projections_doses = solve(prob_projections_doses, dense=false, save_everystep=false, tstops=ts, saveat=ts)
     
-    # Process the results
     cleaned_sol_projections_doses = clean_output_projections(sol_projections_doses)
     
-    # Define dose columns
     doses_cols_projections = [("doses_$i") for i in 1:17]
     doses_routine_cols_projections = [("doses_routine_$i") for i in 1:17]
     doses_booster_cols_projections = [("doses_booster_$i") for i in 1:17]
 
-    # Calculate number of years
     n_years = div(T_max, 12)
     
-    # Initialize arrays for annual doses
     annual_doses = zeros(n_years)
     annual_doses_routine = zeros(n_years)
     annual_doses_booster = zeros(n_years)
@@ -790,7 +765,6 @@ end
 
     end
     
-    # Return based on specified type
     if routine_or_booster_or_all == "all"
         # Create a DataFrame with all three types
         result_df = DataFrame(
@@ -954,15 +928,12 @@ end
 end
 
 @everywhere function create_vaccination_params(base_params, vaccination_schedule)
-    # Create a copy of the base parameters
     params = copy(base_params)
     
-    # EXPLICITLY initialize vaccination arrays with zeros
     params.pvx_r = zeros(Float64, 17)
     params.pvx_b = zeros(Float64, 17)  
     params.pvx_c = zeros(Float64, 17)
     
-    # Apply vaccination schedule from the provided dictionary
     for (vaccine_type, schedules) in vaccination_schedule
         for (age_idx, coverage) in schedules
             if vaccine_type == :routine
@@ -1058,13 +1029,12 @@ end
 
 end
 
-# Function to run projections for all strategies with a given parameter set
+# run projections for all strategies with a given parameter set
 @everywhere function run_projections_for_all_strategies(params_base, strategy_params, current_S, current_Is, current_Ia, current_C, current_R, iteration)
-    # Run ODE simulations for no vaccination
     T_max = 20*12
     ts = range(0, stop=T_max, step=1)
     
-    # No vaccination scenario
+    # no vaccination scenario
     initial_no_vaxx = gen_initial_projections(current_S, current_Is, current_Ia, current_C, current_R)
     prob_no_vaxx = ODEProblem(typhoid_model_projections!, initial_no_vaxx, (0.0, T_max), params_base)
     sol_no_vaxx = solve(prob_no_vaxx, dense=false, save_everystep=false, tstops=ts, saveat=ts)
@@ -1074,7 +1044,6 @@ end
     no_vaxx_incidence = calc_inc_projections_annual(cleaned_sol_no_vaxx)
     no_vaxx_doses = run_projections_vaxx_scenario_doses(params_base, current_S, current_Is, current_Ia, current_C, current_R, "all")
 
-    # Run simulations for each vaccination strategy
     strategy_cases = Dict()
     strategy_incidence = Dict()
     strategy_doses = Dict()
@@ -1096,7 +1065,6 @@ end
         strategy_population[strategy] = calc_population_sizes(cleaned_sol_strategy, 0)
     end
     
-    # Create data frames for different outputs
     total_cases_df = create_output_dataframe(no_vaxx_cases, strategy_cases, :total_cases, false)
     pediatric_cases_df = create_output_dataframe(no_vaxx_cases, strategy_cases, :pediatric_cases, false)
     adult_cases_df = create_output_dataframe(no_vaxx_cases, strategy_cases, :adult_cases, false)
@@ -1107,7 +1075,6 @@ end
     booster_doses_df = create_output_dataframe(no_vaxx_doses, strategy_doses, :booster_doses, true)
     age_stratified_cases_df = create_age_stratified_output_dataframe(no_vaxx_cases, strategy_cases)
 
-    # Add iteration number to each data frame
     total_cases_df[!, :iteration] .= iteration
     pediatric_cases_df[!, :iteration] .= iteration
     adult_cases_df[!, :iteration] .= iteration
@@ -1187,13 +1154,11 @@ end
     return all_results
 end
 
-# Helper function to extract compartment values
 @everywhere function extract_compartment_values(cleaned_sol, compartment, T)
     cols = ["$(compartment)_$i" for i in 1:17]
     return collect(select(cleaned_sol, cols)[T+1, :])
 end
 
-# Helper function to get base parameters for an archetype
 @everywhere function get_base_params(archetype)
     if archetype == 1
         return params_archetype1
@@ -1214,7 +1179,6 @@ end
     end
 end
 
-# Helper function to create parameters for all vaccination strategies
 @everywhere function create_strategy_params(base_params)
     strategy_params = Dict()
     
@@ -1231,12 +1195,9 @@ end
 end
 
 
-# Function to calculate population sizes by year
 @everywhere function calc_population_sizes(sol_df, no_vaxx_indicator)
-    # Get all column names
     all_cols = names(sol_df)
     
-    # Identify all compartment columns that contain population
     if no_vaxx_indicator == 1
        compartment_prefixes = ["S_", "Is_", "Ia_", "C_", "R_", "V_", "Vw_", "Iv_", "Sv_"]
     else
@@ -1254,19 +1215,15 @@ end
         end
     end
     
-    # Calculate number of months and years
     n_months = size(sol_df, 1) - 1
     n_years = div(n_months, 12)
     
-    # Calculate total population for each year
     total_population = zeros(n_years)
     age_group_population = zeros(n_years, 17)
     
     for year in 1:n_years
-        # Get the end index for this year (December)
         end_idx = year*12 + 1
         
-        # Calculate total population across all compartments and age groups
         for age in 1:17
             age_pop = 0.0
             for prefix in compartment_prefixes
@@ -1278,23 +1235,19 @@ end
             age_group_population[year, age] = age_pop
         end
         
-        # Total population for this year
         total_population[year] = sum(age_group_population[year, :])
     end
     
-    # Create age group population columns
     age_group_cols = Dict()
     for age in 1:17
         age_group_cols[Symbol("age_group_$(age)")] = age_group_population[:, age]
     end
     
-    # Create a DataFrame 
     result_df = DataFrame(
         year = 1:n_years,
         total_population = total_population
     )
     
-    # Add age group population columns
     for (col_name, values) in age_group_cols
         result_df[!, col_name] = values
     end
@@ -1303,21 +1256,16 @@ end
 end
 
 
-# Helper function to create population dataframe
 @everywhere function create_population_dataframe(no_vaxx_df, strategy_dfs)
-    # Create a new dataframe with year and total population from no_vaxx
     result_df = select(no_vaxx_df, [:year, :total_population])
     
-    # Rename the column to "no_vaxx"
     rename!(result_df, :total_population => :no_vaxx)
     
-    # Strategy names
     strategy_names = ["routine_9mos", "routine_15mos", "routine_2yrs", "routine_5yrs", 
                      "routine_9mos_booster_5yrs", "routine_15mos_booster_5yrs", 
                      "routine_9mos_boosters_5yrs_10yrs", 
                      "routine_15mos_boosters_5yrs_10yrs"]
     
-    # Add columns for each vaccination strategy
     for (i, strategy_name) in enumerate(strategy_names)
         result_df[!, strategy_name] = strategy_dfs[i][!, :total_population]
     end
@@ -1325,15 +1273,11 @@ end
     return result_df
 end
 
-# Helper function to create output dataframes for cases and doses
 @everywhere function create_output_dataframe(no_vaxx_df, strategy_dfs, column_name, is_booster)
-    # Create a new dataframe with year and the specified column from no_vaxx
     result_df = select(no_vaxx_df, [:year, column_name])
     
-    # Rename the column to "no_vaxx"
     rename!(result_df, column_name => :no_vaxx)
     
-    # Correct strategy names based on your model
     strategy_names = [
         "routine_9mos", 
         "routine_15mos", 
@@ -1345,7 +1289,6 @@ end
         "routine_15mos_boosters_5yrs_10yrs"
     ]
     
-    # Add columns for each vaccination strategy
     for (i, strategy_name) in enumerate(strategy_names)
         result_df[!, strategy_name] = strategy_dfs[i][!, column_name]
     end
@@ -1353,20 +1296,15 @@ end
     return result_df
 end
 
-# Helper function to create incidence dataframe
 @everywhere function create_incidence_dataframe(no_vaxx_df, strategy_dfs)
-    # Create a new dataframe with year and incidence from no_vaxx
     result_df = select(no_vaxx_df, [:year, :annual_incidence])
     
-    # Rename the column to "no_vaxx"
     rename!(result_df, :annual_incidence => :no_vaxx)
     
-    # Strategy names
     strategy_names = ["routine_9mos", "routine_15mos", "routine_2yrs", "routine_5yrs", 
                      "routine_9mos_booster_5yrs", "routine_15mos_booster_5yrs", 
                      "routine_9mos_boosters_5yrs_10yrs", "routine_15mos_boosters_5yrs_10yrs"]
     
-    # Add columns for each vaccination strategy
     for (i, strategy_name) in enumerate(strategy_names)
         result_df[!, strategy_name] = strategy_dfs[i][!, :annual_incidence]
     end
@@ -1374,11 +1312,9 @@ end
     return result_df
 end
 
-# Process results for all archetypes
 all_archetype_results_no_campaign = run_projections_for_all_archetypes(psa_samples_archetype1_ids,psa_samples_archetype2_ids,
 psa_samples_archetype3_ids)
 
-# Process and save results for each archetype
 for archetype in 1:3
     archetype_results_no_campaign = all_archetype_results_no_campaign[archetype]
     
@@ -1392,7 +1328,6 @@ for archetype in 1:3
     slow_booster_doses_list = [result[8] for result in archetype_results_no_campaign]
     slow_age_stratified_cases_list = [result[9] for result in archetype_results_no_campaign]  
 
-    # Combine the DataFrames
     slow_total_cases_no_campaign = vcat(slow_total_cases_list...)
     slow_pediatric_cases_no_campaign = vcat(slow_pediatric_cases_list...)
     slow_adult_cases_no_campaign = vcat(slow_adult_cases_list...)
@@ -1403,7 +1338,6 @@ for archetype in 1:3
     slow_booster_doses_no_campaign = vcat(slow_booster_doses_list...)
     slow_age_stratified_cases_no_campaign = vcat(slow_age_stratified_cases_list...)  
 
-    # Write results
     CSV.write("./projections_output_jun1/archetype$(archetype)_slow_waning_total_cases_no_campaign_jun1.csv", slow_total_cases_no_campaign)
     CSV.write("./projections_output_jun1/archetype$(archetype)_slow_waning_pediatric_cases_no_campaign_jun1.csv", slow_pediatric_cases_no_campaign)
     CSV.write("./projections_output_jun1/archetype$(archetype)_slow_waning_adult_cases_no_campaign_jun1.csv", slow_adult_cases_no_campaign)
