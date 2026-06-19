@@ -126,7 +126,6 @@ end
     ages = 17
     m = 17
     
-    # Main compartments (unchanged)
     S = @view u[1:m]                     # Susceptible (unvaccinated)
     V = @view u[m+1:2*m]                 # Vaccinated (partial protection)
     V2 = @view u[2*m+1:3*m]              # Vaccinated (partial protection 2)
@@ -160,17 +159,14 @@ end
     R_V2 = @view u[22*m+1:23*m]          # R who came from V2 compartment
     R_Vw = @view u[23*m+1:24*m]          # R who came from Vw compartment
     
-    # Cumulative cases
     cases = @view u[24*m+1:25*m]    # Cases from previously vaccinated
 
     doses = @view u[25*m+1:26*m]
     doses_routine = @view u[26*m+1:27*m]
     doses_booster = @view u[27*m+1:28*m]
 
-    # Set up differential equations
     fill!(du, 0.0)
     
-    # Main compartment derivatives
     dS = @view du[1:m]                    
     dV = @view du[m+1:2*m]                
     dV2 = @view du[2*m+1:3*m]             
@@ -180,7 +176,6 @@ end
     dC = @view du[6*m+1:7*m]              
     dR = @view du[7*m+1:8*m]               
     
-    # Population count derivatives
     dIs_never = @view du[8*m+1:9*m]
     dIs_V = @view du[9*m+1:10*m]
     dIs_V2 = @view du[10*m+1:11*m]
@@ -207,7 +202,6 @@ end
     ddoses_routine = @view du[26*m+1:27*m]
     ddoses_booster = @view du[27*m+1:28*m]
 
-    # Total population
     total_Is = sum(Is_never + Is_V + Is_V2 + Is_Vw)
     total_Ia = sum(Ia_never + Ia_V + Ia_V2 + Ia_Vw)
     total_C = sum(C_never + C_V + C_V2 + C_Vw)
@@ -255,7 +249,6 @@ end
     actual_total_r_vaxx_ALL = min.(intended_total_r_vaxx_ALL, sum(S+Ia_never+C_never+R_never))
     actual_total_b_vaxx_ALL = min.(intended_total_b_vaxx_ALL, sum(V+V2+Vw+Ia_V+Ia_V2+Ia_Vw+C_V+C_V2+C_Vw+R_V+R_V2+R_Vw))
 
-    # Distribute between successful and unsuccessful vaccination
     successful_r_vaxx = p.VE .* actual_total_r_vaxx 
     unsuccessful_r_vaxx = (1 .- p.VE) .* actual_total_r_vaxx 
     successful_b_vaxx_Vw = p.VE .* actual_total_b_vaxx_Vw 
@@ -282,29 +275,24 @@ end
            successful_b_vaxx_Vw .- 
            p.a_out .* (1 .- p.pu_burn) .* Vw .- p.u_burn .* Vw 
   
-    # Aging for count variables
     aging_factor_in = (1 .- p.pu_in_burn) .* p.a_in
     aging_factor_out = p.a_out .* (1 .- p.pu_burn) .+ p.u_burn
     
-    # Is counts aging
     dIs_never .+= aging_factor_in .* [0; circshift(Is_never, 1)[2:end]] .- aging_factor_out .* Is_never
     dIs_V .+= aging_factor_in .* [0; circshift(Is_V, 1)[2:end]] .- aging_factor_out .* Is_V
     dIs_V2 .+= aging_factor_in .* [0; circshift(Is_V2, 1)[2:end]] .- aging_factor_out .* Is_V2
     dIs_Vw .+= aging_factor_in .* [0; circshift(Is_Vw, 1)[2:end]] .- aging_factor_out .* Is_Vw
     
-    # Ia counts aging
     dIa_never .+= aging_factor_in .* [0; circshift(Ia_never, 1)[2:end]] .- aging_factor_out .* Ia_never
     dIa_V .+= aging_factor_in .* [0; circshift(Ia_V, 1)[2:end]] .- aging_factor_out .* Ia_V
     dIa_V2 .+= aging_factor_in .* [0; circshift(Ia_V2, 1)[2:end]] .- aging_factor_out .* Ia_V2
     dIa_Vw .+= aging_factor_in .* [0; circshift(Ia_Vw, 1)[2:end]] .- aging_factor_out .* Ia_Vw
     
-    # C counts aging
     dC_never .+= aging_factor_in .* [0; circshift(C_never, 1)[2:end]] .- aging_factor_out .* C_never
     dC_V .+= aging_factor_in .* [0; circshift(C_V, 1)[2:end]] .- aging_factor_out .* C_V
     dC_V2 .+= aging_factor_in .* [0; circshift(C_V2, 1)[2:end]] .- aging_factor_out .* C_V2
     dC_Vw .+= aging_factor_in .* [0; circshift(C_Vw, 1)[2:end]] .- aging_factor_out .* C_Vw
     
-  # R counts aging
     dR_never .+= aging_factor_in .* [0; circshift(R_never, 1)[2:end]] .- aging_factor_out .* R_never
     dR_V .+= aging_factor_in .* [0; circshift(R_V, 1)[2:end]] .- aging_factor_out .* R_V
     dR_V2 .+= aging_factor_in .* [0; circshift(R_V2, 1)[2:end]] .- aging_factor_out .* R_V2
@@ -679,7 +667,6 @@ end
 @everywhere function calc_inc_projections_annual(sol_df)
     all_cols = names(sol_df)
     
-    # Identify case and compartment columns
     case_cols = [("cases_$i") for i in 1:17]
     doses_cols = [("doses_$i") for i in 1:17]
     doses_routine_cols = [("doses_routine_$i") for i in 1:17]
