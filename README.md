@@ -1,4 +1,4 @@
-# All code for Stanford model + cost-effectiveness analysis for "Evaluating the Impact and Cost-Effectiveness of Typhoid Conjugate Vaccine Schedules across Diverse Settings: a Multi-Model Comparison" (Catherine G.C. Wenger, Kyra H. Grantz, Tigist F. Menkir, Alina M. Muellenmeister, Zeaan Pithawala, Raymond Hutubessy, Vittal Mogasale, Alicia N.M. Kraay, Nick Scott, Romesh G. Abeysuriya, Jason R. Andrews, Jillian Gauld, Nathan C. Lo, Virginia E. Pitzer) 
+# Code and data for Stanford model + cost-effectiveness analysis for "Evaluating the Impact and Cost-Effectiveness of Typhoid Conjugate Vaccine Schedules across Diverse Settings: a Multi-Model Comparison" by Catherine G.C. Wenger, Kyra H. Grantz, Tigist F. Menkir, Alina M. Muellenmeister, Zeaan Pithawala, Raymond Hutubessy, Vittal Mogasale, Alicia N.M. Kraay, Nick Scott, Romesh G. Abeysuriya, Jason R. Andrews, Jillian Gauld, Nathan C. Lo, and Virginia E. Pitzer
 
 ## data
 Files needed to run calibrations, projections, and CEAs
