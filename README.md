@@ -19,4 +19,4 @@ Scripts for running projections under each waning scenario, with and without cat
 Scripts for conducting cost-effectiveness analyses for all archetype x waning scenario x cost region, with and without catch-up campaigns
 
 ## threshold analysis
-Script for running threshold analysis 
+Scripts for running threshold analysis & combining outputs across archetype x waning scenario x cost region
