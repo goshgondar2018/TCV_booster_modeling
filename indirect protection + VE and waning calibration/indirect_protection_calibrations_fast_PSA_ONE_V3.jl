@@ -69,7 +69,6 @@ end
     ages = 17
     m = 17
     
-    # Main compartments (unchanged)
     S = @view u[1:m]                     # Susceptible (unvaccinated)
     V = @view u[m+1:2*m]                 # Vaccinated (partial protection)
     V2 = @view u[2*m+1:3*m]              # Vaccinated (partial protection 2)
