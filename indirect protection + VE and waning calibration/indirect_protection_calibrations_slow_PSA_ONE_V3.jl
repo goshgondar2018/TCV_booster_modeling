@@ -404,7 +404,6 @@ end
     time_points = sol.t
 
     # Extract all compartment values for each time point
-     # Main compartments (unchanged)
     S_values = [u[1:m] for u in sol.u]                   
     V_values = [u[m+1:2*m] for u in sol.u]             
     V2_values = [u[2*m+1:3*m] for u in sol.u]             
